@@ -163,12 +163,10 @@ void print_mpris_info(mpris_properties *props, char* format)
     char* pos_label = get_zero_string(10);
     snprintf(pos_label, 20, "%" PRId64, props->position);
     char* track_number_label = get_zero_string(3);
-    snprintf(track_number_label, 3, "%d", props->metadata.track_number);
+    snprintf(track_number_label, 3, "%d", props->metadata->track_number);
     char* bitrate_label = get_zero_string(5);
-    snprintf(bitrate_label, 5, "%d", props->metadata.bitrate);
-    char* length_label = get_zero_string(10);
-    snprintf(length_label, 20, "%d", props->metadata.length);
-
+    snprintf(bitrate_label, 5, "%d", props->metadata->bitrate);char* length_label = get_zero_string(10);
+    snprintf(length_label, 20, "%d", props->metadata->length);
     char* output = get_zero_string(MAX_OUTPUT_LENGTH);
     strncpy(output, format, MAX_OUTPUT_LENGTH);
 
@@ -177,20 +175,38 @@ void print_mpris_info(mpris_properties *props, char* format)
 
     output = str_replace(output, ARG_INFO_FULL, info_full);
 
-    output = str_replace(output, ARG_INFO_PLAYER_NAME, props->player_name);
     output = str_replace(output, ARG_INFO_SHUFFLE_MODE, shuffle_label);
-    output = str_replace(output, ARG_INFO_PLAYBACK_STATUS, props->playback_status);
     output = str_replace(output, ARG_INFO_VOLUME, volume_label);
-    output = str_replace(output, ARG_INFO_LOOP_STATUS, props->loop_status);
+    if (props->player_name) {
+        output = str_replace(output, ARG_INFO_PLAYER_NAME, props->player_name);
+    }
+    if (props->playback_status) {
+        output = str_replace(output, ARG_INFO_PLAYBACK_STATUS, props->playback_status);
+    }
+    if (props->loop_status) {
+        output = str_replace(output, ARG_INFO_LOOP_STATUS, props->loop_status);
+    }
     output = str_replace(output, ARG_INFO_POSITION, pos_label);
-    output = str_replace(output, ARG_INFO_TRACK_NAME, props->metadata.title);
-    output = str_replace(output, ARG_INFO_ARTIST_NAME, props->metadata.artist);
-    output = str_replace(output, ARG_INFO_ALBUM_ARTIST, props->metadata.album_artist);
-    output = str_replace(output, ARG_INFO_ALBUM_NAME, props->metadata.album);
-    output = str_replace(output, ARG_INFO_TRACK_LENGTH, length_label);
-    output = str_replace(output, ARG_INFO_TRACK_NUMBER, track_number_label);
-    output = str_replace(output, ARG_INFO_BITRATE, bitrate_label);
-    output = str_replace(output, ARG_INFO_COMMENT, props->metadata.comment);
+    if (props->metadata) {
+        output = str_replace(output, ARG_INFO_TRACK_LENGTH, length_label);
+        output = str_replace(output, ARG_INFO_TRACK_NUMBER, track_number_label);
+        output = str_replace(output, ARG_INFO_BITRATE, bitrate_label);
+        if (props->metadata->title) {
+            output = str_replace(output, ARG_INFO_TRACK_NAME, props->metadata->title);
+        }
+        if (props->metadata->artist) {
+            output = str_replace(output, ARG_INFO_ARTIST_NAME, props->metadata->artist);
+        }
+        if (props->metadata->album_artist) {
+            output = str_replace(output, ARG_INFO_ALBUM_ARTIST, props->metadata->album_artist);
+        }
+        if (props->metadata->album) {
+            output = str_replace(output, ARG_INFO_ALBUM_NAME, props->metadata->album);
+        }
+        if (props->metadata->comment) {
+            output = str_replace(output, ARG_INFO_COMMENT, props->metadata->comment);
+        }
+    }
 
     fprintf(stdout, "%s\n", output);
     free(output);
@@ -266,8 +282,12 @@ int main(int argc, char** argv)
                          MPRIS_PLAYER_INTERFACE,
                          dbus_method);
     } else {
-        mpris_properties properties = get_mpris_properties(conn, destination);
-        print_mpris_info(&properties, info_format);
+        mpris_properties *properties = mpris_properties_init();
+        get_mpris_properties(conn, destination, properties);
+
+        print_mpris_info(properties, info_format);
+
+        mpris_properties_unref(properties);
     }
 
     dbus_connection_close(conn);
