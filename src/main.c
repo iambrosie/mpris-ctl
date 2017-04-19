@@ -282,12 +282,14 @@ int main(int argc, char** argv)
                          MPRIS_PLAYER_INTERFACE,
                          dbus_method);
     } else {
-        mpris_properties *properties = mpris_properties_init();
-        get_mpris_properties(conn, destination, properties);
+        mpris_properties properties;
 
-        print_mpris_info(properties, info_format);
+        mpris_properties_init(&properties);
+        get_mpris_properties(conn, destination, &properties);
 
-        mpris_properties_unref(properties);
+        print_mpris_info(&properties, info_format);
+
+        mpris_properties_unref(&properties);
     }
 
     dbus_connection_close(conn);
